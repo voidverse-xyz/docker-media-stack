@@ -6,21 +6,41 @@ A self-hosted Docker Compose media server stack using Jellyfin, Sonarr, Radarr, 
 
 Edit the Gluetun environment variables according to the [Gluetun wiki](https://github.com/qdm12/gluetun-wiki/tree/main/setup/providers).
 
-# Run
+## Storage Setup
+
+The download client and media managers share one `/data` mount so imports can use atomic moves and hardlinks. Configure these settings in the applications:
+
+| Application | Setting | Value |
+| ------ | ------ | ------ |
+| qBittorrent | Default save path | `/data/torrents` |
+| qBittorrent | `tv` category save path | `/data/torrents/tv` |
+| qBittorrent | `movies` category save path | `/data/torrents/movies` |
+| Sonarr | Download client category | `tv` |
+| Sonarr | Root folder | `/data/media/tv` |
+| Radarr | Download client category | `movies` |
+| Radarr | Root folder | `/data/media/movies` |
+| Jellyfin | TV library | `/data/media/tv` |
+| Jellyfin | Movie library | `/data/media/movies` |
+
+## Run
 
 `sudo docker compose up`
 
 ## Network
 
-| Container | Port |
-| ------ | ---- |
-| Jellyfin | 8096 |
-| docker-whats-my-ip | 3000 |
-| QBittorrent | 8080 |
-| Radarr | 7878 |
-| Sonarr | 8989 |
-| FlareSolverr | 8191 |
-| Prowlarr | 9696 |
+The VPN-routed applications use `network_mode: service:gluetun` and share Gluetun's network namespace. When configuring connections between those containers, use `localhost` with the destination port—not the Compose service name. For example, configure Sonarr and Radarr to reach qBittorrent at `localhost:8080`, and configure Prowlarr to reach Sonarr and Radarr at `localhost:8989` and `localhost:7878`.
+
+Jellyfin uses the Docker host's network directly so LAN discovery and DLNA multicast can work. From another device, connect to Jellyfin and the published Gluetun ports using the Docker host's IP address.
+
+| Container | VPN-network address | Host/LAN address |
+| ------ | ------ | ------ |
+| Jellyfin | Not VPN-routed | `<host-ip>:8096` |
+| docker-whats-my-ip | `localhost:3000` | `<host-ip>:3000` |
+| qBittorrent | `localhost:8080` | `<host-ip>:8080` |
+| Radarr | `localhost:7878` | `<host-ip>:7878` |
+| Sonarr | `localhost:8989` | `<host-ip>:8989` |
+| FlareSolverr | `localhost:8191` | `<host-ip>:8191` |
+| Prowlarr | `localhost:9696` | `<host-ip>:9696` |
 
 ## Containers
 
