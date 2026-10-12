@@ -34,13 +34,25 @@ Jellyfin uses the Docker host's network directly so LAN discovery and DLNA multi
 
 | Container | VPN-network address | Host/LAN address |
 | ------ | ------ | ------ |
-| Jellyfin | Not VPN-routed | `<host-ip>:8096` |
+| Jellyfin | Not VPN-routed | `<host-ip>:80` (proxy), `<host-ip>:8096` (direct) |
 | docker-whats-my-ip | `localhost:3000` | `<host-ip>:3000` |
 | qBittorrent | `localhost:8080` | `<host-ip>:8080` |
 | Radarr | `localhost:7878` | `<host-ip>:7878` |
 | Sonarr | `localhost:8989` | `<host-ip>:8989` |
 | FlareSolverr | `localhost:8191` | `<host-ip>:8191` |
 | Prowlarr | `localhost:9696` | `<host-ip>:9696` |
+
+### Jellyfin on port 80
+
+The `jellyfin-proxy` Nginx service uses host networking and forwards HTTP port 80 to Jellyfin at `127.0.0.1:8096`, including WebSocket connections. Jellyfin keeps host networking for LAN discovery/DLNA and remains accessible directly on port 8096.
+
+Ensure no other service is listening on the Docker host's port 80, then start Jellyfin and its proxy:
+
+```sh
+sudo docker compose up -d jellyfin jellyfin-proxy
+```
+
+Open `http://<host-ip>/` from your LAN. This is plain HTTP, not HTTPS; do not expose it directly to the internet. In Jellyfin's Networking settings, add `127.0.0.1` as a Known Proxy if you want Jellyfin to trust the forwarded client address. The proxy configuration is in `config/jellyfin-proxy.conf`; restart `jellyfin-proxy` after editing it.
 
 ## Containers
 
